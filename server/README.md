@@ -62,10 +62,10 @@ The image is multi-stage. The runtime stage is `node:24-alpine` running as the n
    - **Build pack:** Dockerfile
    - **Base directory:** `/server`
    - **Exposed port:** `3000`
-   - **Domain:** `https://wa-api.mitangs.tech`
+   - **Domain:** `https://wa-api.apps.mitangs.tech`
 2. Add a **persistent storage** volume mounted at **`/data`**. Without it, the inbox is lost on every redeploy.
 3. Set the resource limits to **memory 128M** and CPU 0.25.
 4. Add the env vars from the table above. Keep `WA_TOKEN`, `WA_APP_SECRET`, `SESSION_SECRET`, `DASHBOARD_PASSWORD` and `BOT_SHARED_SECRET` as secrets.
-5. After the deploy, check that `GET https://wa-api.mitangs.tech/health` returns `ok: true`. Then set the Meta webhook to `https://wa-api.mitangs.tech/webhook` with the verify token, and subscribe to the **messages** field.
+5. After the deploy, check that `GET https://wa-api.apps.mitangs.tech/health` returns `ok: true`. Then set the Meta webhook to `https://wa-api.apps.mitangs.tech/webhook` with the verify token, and subscribe to the **messages** field.
 
 Only one replica can run, because SQLite on a volume supports a single writer.

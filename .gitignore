@@ -6,3 +6,4 @@ dist/
 data/
 .vercel/
 .coolify.env
+.secrets.local

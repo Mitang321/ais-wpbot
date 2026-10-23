@@ -53,7 +53,7 @@ You should get a 401 error.
 
 ## 3. Coolify: `server/`
 
-1. **DNS:** add an `A` record `wa-api.mitangs.tech` → your Oracle VM's public IP.
+1. **DNS:** add an `A` record `wa-api.apps.mitangs.tech` → your Oracle VM's public IP.
    If it's on Cloudflare, start with **DNS only** (grey cloud) so Let's Encrypt
    can issue the cert. Make sure ports 80/443 are open in the OCI security list.
 2. Push this repo (`whatsapp-bot`) to GitHub (private).
@@ -61,7 +61,7 @@ You should get a 401 error.
    - Build pack: **Dockerfile**
    - Base directory: `/server`
    - Port: `3000`
-   - Domain: `https://wa-api.mitangs.tech`
+   - Domain: `https://wa-api.apps.mitangs.tech`
 4. **Persistent storage:** add a volume mounted at `/data`.
 5. **Resource limits (Advanced):** memory `128m`, CPUs `0.25`.
 6. **Environment variables:**
@@ -75,7 +75,7 @@ You should get a 401 error.
    ```
 7. Deploy.
 
-**Check:** open `https://wa-api.mitangs.tech/health`. You should see `ok: true`,
+**Check:** open `https://wa-api.apps.mitangs.tech/health`. You should see `ok: true`,
 `rssMb` well under 100, and `catalog.products` > 0 once the worker step is done.
 
 ---
@@ -83,7 +83,7 @@ You should get a 401 error.
 ## 4. Meta webhook
 
 App → **WhatsApp → Configuration → Webhook → Edit**:
-- Callback URL: `https://wa-api.mitangs.tech/webhook`
+- Callback URL: `https://wa-api.apps.mitangs.tech/webhook`
 - Verify token: your `WA_VERIFY_TOKEN`
 - **Verify and save**, then **Manage → subscribe to `messages`**.
 
@@ -96,7 +96,7 @@ and in the dashboard after step 5.
 
 1. vercel.com → **Add New → Project** → import the same GitHub repo.
 2. **Root directory:** `dashboard`. Framework: Vite (auto-detected).
-3. **Env:** `VITE_API_URL=https://wa-api.mitangs.tech`
+3. **Env:** `VITE_API_URL=https://wa-api.apps.mitangs.tech`
 4. Deploy, then copy the URL into Coolify's `DASHBOARD_ORIGIN` and redeploy the server.
 
 **Check:** log in with `DASHBOARD_PASSWORD`, and your "hi" from step 4 is in the inbox.

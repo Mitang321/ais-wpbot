@@ -39,7 +39,7 @@ Checks: `npm run typecheck`, `npm run build` (output in `dist/`).
 1. Import the repo in Vercel.
 2. **Root Directory:** `dashboard`
 3. **Framework Preset:** Vite (build `npm run build`, output `dist`; `vercel.json` sets these too)
-4. **Environment variable:** `VITE_API_URL=https://wa-api.mitangs.tech` (Production and Preview).
+4. **Environment variable:** `VITE_API_URL=https://wa-api.apps.mitangs.tech` (Production and Preview).
    It is baked in at build time, so redeploy after you change it.
 5. Deploy. `vercel.json` rewrites every path to `index.html` so deep links like `/c/919812345678` work.
 

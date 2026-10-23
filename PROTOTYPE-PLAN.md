@@ -98,7 +98,7 @@ No KV writes, no prices. Deploy it to staging first.
   - **New chat:** phone number + template.
   - **Header:** auto-reply switch.
 - Updates by **polling every 5 seconds** (simplest; can move to SSE later).
-- Env: `VITE_API_URL=https://wa-api.mitangs.tech`. Vercel root directory = `dashboard`.
+- Env: `VITE_API_URL=https://wa-api.apps.mitangs.tech`. Vercel root directory = `dashboard`.
 
 ## Repo layout
 
@@ -121,7 +121,7 @@ whatsapp-bot/
 - [ ] Note the **Phone Number ID** (not the phone number itself) and the **App Secret**.
 - [ ] If you're on the **test number**, add up to 5 recipient numbers (yours and
       a dealer friend's) under "To".
-- [ ] After step 3 below: set the webhook URL `https://wa-api.mitangs.tech/webhook`
+- [ ] After step 3 below: set the webhook URL `https://wa-api.apps.mitangs.tech/webhook`
       + verify token, and subscribe to the **messages** field.
 
 ## Build order (each step is testable on its own)
@@ -129,7 +129,7 @@ whatsapp-bot/
 | # | Step | Done when |
 |---|---|---|
 | 1 | `server/`: webhook + SQLite + send, run locally behind a `cloudflared` tunnel | message from your phone lands in SQLite, and `curl /api/send` replies |
-| 2 | Dockerfile + Coolify app + DNS `wa-api.mitangs.tech` | Meta webhook verifies against the Coolify URL; RAM < 60 MB |
+| 2 | Dockerfile + Coolify app + DNS `wa-api.apps.mitangs.tech` | Meta webhook verifies against the Coolify URL; RAM < 60 MB |
 | 3 | `dashboard/` on Vercel: login, inbox, reply, template | full chat from the browser |
 | 4 | Worker `bot_catalog` (staging → prod) + auto-reply search | "hp i5" on WhatsApp → top 3 products + link |
 | 5 | Try it with 2–3 real dealers | a day with no errors in Coolify logs |

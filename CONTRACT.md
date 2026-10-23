@@ -6,7 +6,7 @@ for the why.
 
 ## 1. Server REST API (`server/`, Coolify, port 3000)
 
-Base URL in production: `https://wa-api.mitangs.tech`.
+Base URL in production: `https://wa-api.apps.mitangs.tech`.
 All `/api/*` routes except `/api/login` need `Authorization: Bearer <token>`.
 All bodies and responses are JSON. Errors: `{ "ok": false, "error": "<code>", "message": "<human text>" }`
 with a 4xx/5xx status. CORS: only `DASHBOARD_ORIGIN` (comma-separated list allowed), methods GET/POST/PUT/OPTIONS,
