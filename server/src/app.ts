@@ -194,7 +194,8 @@ export function createApp(deps: AppDeps) {
   app.use(
     '/api/*',
     cors({
-      origin: (origin) => (origins.has(origin) ? origin : null),
+      // Auth is a bearer token (no cookies), so Vercel preview/production URLs are safe to allow.
+      origin: (origin) => (origins.has(origin) || /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin) ? origin : null),
       allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowHeaders: ['Authorization', 'Content-Type'],
       maxAge: 86400,
