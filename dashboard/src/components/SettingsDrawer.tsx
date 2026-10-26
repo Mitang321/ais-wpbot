@@ -12,6 +12,7 @@ export function SettingsDrawer({
   saveError,
   onUpdate,
   onRetry,
+  onLogout,
 }: {
   open: boolean;
   onClose: () => void;
@@ -21,6 +22,7 @@ export function SettingsDrawer({
   saveError: string | null;
   onUpdate: (patch: Partial<Settings>) => Promise<boolean>;
   onRetry: () => void;
+  onLogout: () => void;
 }): JSX.Element {
   const [newPhone, setNewPhone] = useState('');
   const digits = normalizePhone(newPhone);
@@ -37,7 +39,7 @@ export function SettingsDrawer({
   }
 
   return (
-    <Drawer open={open} onClose={onClose} title="Settings" subtitle="Auto-reply bot">
+    <Drawer open={open} onClose={onClose} title="Settings" subtitle="WhatsApp ordering bot">
       {!settings && !loadError && (
         <div className="flex justify-center py-10">
           <Spinner />
@@ -49,9 +51,9 @@ export function SettingsDrawer({
           {saveError && <ErrorNote>{saveError}</ErrorNote>}
           <section className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 p-4">
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Auto-reply</h3>
+              <h3 className="text-sm font-semibold text-slate-900">WhatsApp bot</h3>
               <p className="mt-0.5 text-sm text-slate-500">
-                Answer catalog searches automatically. Only replies to the allowed numbers below.
+                When on, the bot answers customers on WhatsApp: shows the product list, takes orders and confirms them.
               </p>
             </div>
             <Toggle
@@ -63,9 +65,10 @@ export function SettingsDrawer({
           </section>
 
           <section>
-            <h3 className="text-sm font-semibold text-slate-900">Allowed numbers</h3>
+            <h3 className="text-sm font-semibold text-slate-900">Only reply to these numbers (optional)</h3>
             <p className="mt-0.5 text-sm text-slate-500">
-              The bot only auto-replies to these. Everyone else still shows up in the inbox.
+              Leave this list <strong>empty</strong> and the bot replies to everyone. Add numbers only to test the bot with a few
+              people first. Every message still shows up in Chats.
             </p>
             <form onSubmit={add} className="mt-3 flex gap-2">
               <input
@@ -83,7 +86,7 @@ export function SettingsDrawer({
             {newPhone && !valid && <p className="mt-1 text-xs text-slate-500">Digits with country code, 8–15 long.</p>}
             <ul className="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200">
               {settings.allowedPhones.length === 0 && (
-                <li className="px-3 py-4 text-center text-sm text-slate-500">No numbers yet: the bot replies to nobody.</li>
+                <li className="px-3 py-4 text-center text-sm text-slate-500">Empty: the bot replies to everyone ✅</li>
               )}
               {settings.allowedPhones.map((p) => (
                 <li key={p} className="flex items-center justify-between px-3 py-2">
@@ -102,6 +105,12 @@ export function SettingsDrawer({
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section className="border-t border-slate-200 pt-4">
+            <Button variant="secondary" onClick={onLogout} className="w-full">
+              Log out
+            </Button>
           </section>
         </div>
       )}

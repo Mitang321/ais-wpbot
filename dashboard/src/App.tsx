@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { hasToken, logout, setUnauthorizedHandler } from './api';
 import { Login } from './components/Login';
-import { Inbox } from './components/Inbox';
+import { Shell } from './components/Shell';
 
 export default function App(): JSX.Element {
   const [authed, setAuthed] = useState(hasToken());
@@ -26,7 +26,7 @@ export default function App(): JSX.Element {
     );
   }
   return (
-    <Inbox
+    <Shell
       onLogout={() => {
         logout();
         setAuthed(false);

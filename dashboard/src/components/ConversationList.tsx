@@ -89,9 +89,9 @@ export function ConversationList({
                       {!c.allowed && (
                         <span
                           className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500"
-                          title="Not in allowed numbers: the bot will not auto-reply"
+                          title="Not in the allowed numbers: the bot will not auto-reply"
                         >
-                          not allowed
+                          bot off
                         </span>
                       )}
                       {c.unread > 0 && (

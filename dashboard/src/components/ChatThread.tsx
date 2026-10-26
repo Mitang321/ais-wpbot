@@ -28,18 +28,15 @@ function mergeById(...lists: Message[][]): Message[] {
 export function ChatThread({
   phone,
   fallback,
-  allowed,
-  allowBusy,
-  onToggleAllowed,
+  botReplies,
   onBack,
   onActivity,
 }: {
   phone: string;
   /** Row from the conversation list, shown until the thread loads. */
   fallback: Conversation | undefined;
-  allowed: boolean;
-  allowBusy: boolean;
-  onToggleAllowed: () => void;
+  /** Auto-reply is on and applies to this number. */
+  botReplies: boolean;
   onBack: () => void;
   /** Called after a send or a read so the list can refresh. */
   onActivity: () => void;
@@ -204,7 +201,7 @@ export function ChatThread({
         >
           ←
         </button>
-        <Avatar label={header ? initials(header) : '#'} muted={!allowed} />
+        <Avatar label={header ? initials(header) : '#'} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
           <p className="truncate text-xs text-slate-500">
@@ -212,21 +209,15 @@ export function ChatThread({
             <span className={windowOpen ? 'text-emerald-600' : 'text-amber-700'}>{windowLabel(contact ?? fallback ?? null)}</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onToggleAllowed}
-          disabled={allowBusy}
-          aria-pressed={allowed}
-          title={allowed ? 'Bot may auto-reply to this number. Click to remove.' : 'Bot will not auto-reply. Click to allow.'}
-          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
-            allowed
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+        <span
+          title={botReplies ? 'The WhatsApp bot answers this customer automatically.' : 'The bot does not answer this number (auto-reply off or not in the allowed list).'}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+            botReplies ? 'border-leaf-200 bg-leaf-50 text-leaf-700' : 'border-slate-300 bg-white text-slate-600'
           }`}
         >
-          <span className={`h-2 w-2 rounded-full ${allowed ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-          {allowed ? 'Allowed' : 'Allow this number'}
-        </button>
+          <span className={`h-2 w-2 rounded-full ${botReplies ? 'bg-leaf-500' : 'bg-slate-300'}`} />
+          {botReplies ? 'Bot on' : 'Bot off'}
+        </span>
       </div>
 
       {/* Messages */}

@@ -1,5 +1,20 @@
 /** Tiny fetch wrapper: base URL, bearer token, JSON, typed errors, global 401 handling. */
-import type { Conversation, Message, Settings } from './types';
+import type {
+  BroadcastResult,
+  Conversation,
+  ItemInput,
+  Message,
+  Order,
+  OrderInput,
+  OrderStatus,
+  Product,
+  ProductInput,
+  Run,
+  RunInput,
+  RunStatus,
+  RunSummary,
+  Settings,
+} from './types';
 
 export const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
@@ -119,4 +134,28 @@ export const api = {
   settings: () => request<{ settings: Settings }>('GET', '/api/settings').then((r) => r.settings),
   updateSettings: (patch: Partial<Settings>) =>
     request<{ settings: Settings }>('PUT', '/api/settings', patch).then((r) => r.settings),
+
+
+  // ---- grocery store (GROCERY-CONTRACT.md §1) ----
+  products: () => request<{ products: Product[] }>('GET', '/api/products').then((r) => r.products),
+  createProduct: (input: ProductInput) =>
+    request<{ product: Product }>('POST', '/api/products', input).then((r) => r.product),
+  updateProduct: (id: string, patch: Partial<ProductInput> & { active?: boolean }) =>
+    request<{ product: Product }>('PUT', `/api/products/${encodeURIComponent(id)}`, patch).then((r) => r.product),
+
+  runs: () => request<{ runs: RunSummary[] }>('GET', '/api/runs').then((r) => r.runs),
+  createRun: (input: RunInput) => request<{ run: Run }>('POST', '/api/runs', input).then((r) => r.run),
+  updateRun: (id: number, patch: Partial<RunInput> & { status?: RunStatus }) =>
+    request<{ run: Run }>('PUT', `/api/runs/${id}`, patch).then((r) => r.run),
+  runOrders: (id: number) => request<{ run: Run; orders: Order[] }>('GET', `/api/runs/${id}/orders`),
+  broadcast: (id: number, text: string) =>
+    request<BroadcastResult>('POST', `/api/runs/${id}/broadcast`, { text }).then((r) => ({
+      sent: r.sent ?? 0,
+      skipped: r.skipped ?? 0,
+      failed: r.failed ?? 0,
+    })),
+
+  createOrder: (input: OrderInput) => request<{ order: Order }>('POST', '/api/orders', input).then((r) => r.order),
+  updateOrder: (id: number, patch: { status?: OrderStatus; paid?: boolean; note?: string; items?: ItemInput[] }) =>
+    request<{ order: Order }>('PUT', `/api/orders/${id}`, patch).then((r) => r.order),
 };

@@ -18,3 +18,20 @@ body {
   background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
   background-size: 16px 16px;
 }
+
+body {
+  background-color: #f7f5f2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #fff;
+  }
+  @page {
+    margin: 12mm;
+  }
+}
