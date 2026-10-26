@@ -50,6 +50,27 @@ export class WhatsAppClient {
     });
   }
 
+  /** Marks an inbound message read (blue ticks) and shows "typing…" until we reply (max ~25 s). Best effort. */
+  async markReadTyping(messageId: string): Promise<void> {
+    const f = this.opts.fetch ?? fetch;
+    const url = `${this.opts.graphBaseUrl}/${encodeURIComponent(this.replyFromId ?? this.opts.phoneNumberId)}/messages`;
+    try {
+      await f(url, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${this.opts.token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          status: 'read',
+          message_id: messageId,
+          typing_indicator: { type: 'text' },
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+    } catch {
+      /* cosmetic only */
+    }
+  }
+
   private async post(payload: Record<string, unknown>): Promise<SendResult> {
     const f = this.opts.fetch ?? fetch;
     const url = `${this.opts.graphBaseUrl}/${encodeURIComponent(this.replyFromId ?? this.opts.phoneNumberId)}/messages`;

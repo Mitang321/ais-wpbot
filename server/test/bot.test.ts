@@ -19,7 +19,7 @@ function shop(now = NOW) {
       : inboundPayload({ id, from: opts.from, text, ts: now });
     await postWebhook(s.app, payload);
     await s.idle();
-    return s.graph.calls.slice(before).map((c) => c.body);
+    return s.graph.calls.slice(before).map((c) => c.body).filter((b) => b?.status !== 'read');
   };
   const textOf = (b: any) => (b.type === 'interactive' ? b.interactive.body.text : b.text.body) as string;
   return { ...s, say, textOf };

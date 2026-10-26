@@ -8,7 +8,8 @@ import type { ItemInput, Store } from './db.js';
 import { roundQty } from './db.js';
 import type { WhatsAppClient, SendResult } from './whatsapp.js';
 import type { Message, MessageStatus, MessageType, Order, OrderItem, Product, Run } from './types.js';
-import { parseOrder, type ParseResult } from './parser.js';
+import { parseOrder, parseOrderRules, type ParseResult } from './parser.js';
+import { askAssistant } from './assistant.js';
 import { errMsg, maskPhone, type Logger } from './log.js';
 
 export interface BotDeps {
@@ -167,8 +168,11 @@ export class Bot {
     const s = this.d.store.getSettings();
     if (!s.autoReply) return;
     if (s.allowedPhones.length && !s.allowedPhones.includes(msg.phone)) return;
+    if (!msg.id.startsWith('local-')) void this.d.wa.markReadTyping(msg.id);
+    const started = Date.now();
     try {
       await this.converse(msg.phone, msg.text, buttonId);
+      this.d.log.info(`bot: replied to ${maskPhone(msg.phone)} in ${Date.now() - started} ms`);
     } catch (err) {
       this.d.log.error(`bot: reply to ${maskPhone(msg.phone)} failed: ${errMsg(err)}`);
     }
@@ -209,7 +213,58 @@ export class Bot {
     }
     if (MY_ORDER.has(t)) return this.reply(phone, this.myOrder(phone, now));
     if (CANCEL.has(t)) return this.cancel(phone, now);
-    return this.takeOrder(phone, text, now);
+    return this.understand(phone, text, now);
+  }
+
+  /**
+   * Free text: a clean order the rules fully understand goes straight to confirmation (fast, no AI).
+   * Anything else (questions, Hinglish, typos, mixed messages) goes to the Gemini assistant.
+   */
+  private async understand(phone: string, text: string, now: number): Promise<void> {
+    const { store } = this.d;
+    if (!this.d.geminiApiKey || this.d.parse) return this.takeOrder(phone, text, now);
+    const products = store.listProducts().filter((p) => p.active);
+    const rules = parseOrderRules(text, products);
+    if (rules.lines.length && !rules.unmatched.length) return this.takeOrder(phone, text, now, rules);
+
+    const run = store.activeRun(now);
+    const order = run ? store.findOpenOrder(run.id, phone) : null;
+    const history = store
+      .getMessages(phone, undefined, 9)
+      .slice(0, -1) // the latest message is passed separately
+      .map((m) => `${m.direction === 'in' ? 'Customer' : 'Shop'}: ${m.text.slice(0, 300)}`);
+    const ai = await askAssistant(
+      {
+        storeName: this.d.storeName,
+        delivery: run
+          ? `${run.town}, ${formatDay(run.deliveryDate)}, ${run.deliveryTime}. Pickup: ${run.pickupSpot}. ${cutoffLines(run, now).join(' ')}`
+          : 'No delivery scheduled right now.',
+        products: products.map((p) => ({ ...p, closed: run ? isCategoryClosed(run, p.category, now) : true })),
+        currentOrder: order ? `#${order.id}: ${order.items.map(itemLine).join('; ')} (total ${euros(order.totalCents)})` : 'none',
+        history,
+        message: text,
+      },
+      { apiKey: this.d.geminiApiKey, model: this.d.geminiModel, log: this.d.log },
+    );
+    if (!ai) return this.takeOrder(phone, text, now, rules);
+    switch (ai.intent) {
+      case 'greeting':
+        return this.reply(phone, this.greeting(now));
+      case 'list':
+        for (const part of this.productList(now)) await this.reply(phone, part);
+        return;
+      case 'my_order':
+        return this.reply(phone, this.myOrder(phone, now));
+      case 'cancel':
+        return this.cancel(phone, now);
+      case 'order':
+        if (ai.lines.length) return this.takeOrder(phone, text, now, { lines: ai.lines, unmatched: ai.unmatched, engine: 'gemini' });
+        if (ai.reply) return this.reply(phone, ai.reply);
+        return this.takeOrder(phone, text, now, rules);
+      default:
+        if (ai.reply) return this.reply(phone, ai.reply);
+        return this.takeOrder(phone, text, now, rules);
+    }
   }
 
   private async reply(phone: string, text: string): Promise<void> {
@@ -316,7 +371,7 @@ export class Bot {
     await this.reply(phone, `❌ Order #${order.id} is cancelled.\nYou can order again any time before the cutoff 🙂`);
   }
 
-  private async takeOrder(phone: string, text: string, now: number): Promise<void> {
+  private async takeOrder(phone: string, text: string, now: number, preParsed?: ParseResult): Promise<void> {
     const { store } = this.d;
     const run = store.activeRun(now);
     if (!run) {
@@ -324,7 +379,7 @@ export class Bot {
       return;
     }
     const products = store.listProducts().filter((p) => p.active);
-    const parsed = await (this.d.parse
+    const parsed = preParsed ?? await (this.d.parse
       ? this.d.parse(text, products)
       : parseOrder(text, products, {
           geminiApiKey: this.d.geminiApiKey,
