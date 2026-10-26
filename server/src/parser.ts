@@ -280,7 +280,7 @@ async function parseWithGemini(text: string, products: Product[], opts: ParseOpt
   const catalogue = products
     .map((p) => `${p.id} | ${p.name} | ${p.unit} | ${p.packLabel ?? ''} | ${p.aliases.join(', ')}`)
     .join('\n');
-  const model = encodeURIComponent(opts.geminiModel || 'gemini-flash-lite-latest');
+  const model = encodeURIComponent(opts.geminiModel || 'gemini-3.1-flash-lite');
   const res = await f(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.geminiApiKey! },

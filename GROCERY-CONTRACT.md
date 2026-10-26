@@ -94,7 +94,7 @@ export function parseOrder(text: string, products: Product[], opts: {
 ```
 
 `qty` is in the product unit. Duplicate products are summed. When a key is set, Gemini is tried first
-(env `GEMINI_API_KEY`; `GEMINI_MODEL`, default `gemini-flash-lite-latest`). Any error, timeout (8 s) or
+(env `GEMINI_API_KEY`; `GEMINI_MODEL`, default `gemini-3.1-flash-lite`). Any error, timeout (8 s) or
 invalid output falls back to `parseOrderRules`.
 
 ## 6. Seed (`server/src/seed.ts`)

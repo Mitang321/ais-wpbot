@@ -113,10 +113,9 @@ export async function askAssistant(input: AssistantInput, opts: AssistantOpts): 
                 responseSchema: RESPONSE_SCHEMA,
                 temperature: 0.2,
                 maxOutputTokens: 800,
-                thinkingConfig: { thinkingBudget: 0 },
               },
         }),
-        signal: AbortSignal.timeout(opts.timeoutMs ?? 6000),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 8000),
       });
     let res = await call(simple400);
     if (res.status === 400 && !simple400) {
