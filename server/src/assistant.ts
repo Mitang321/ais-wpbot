@@ -47,7 +47,8 @@ Decide the intent of the customer's latest message:
 - "cancel": they want to cancel their whole order.
 - "greeting": just hello / hi / namaste with nothing else.
 Order lines: match each item to exactly one productId from the catalogue. qty is in the product unit: unit "kg" means kilograms (500 g -> 0.5); pack/pc/bunch means number of packs ("500g" of a "250 g box" -> 2; "1 bag 20kg" of a "20 kg bag" -> 1). Default qty 1 ("some", "a little" -> 1 for packs, 0.5 kg for kg items). Prefer the pack size matching a stated weight. Put requested items that are not in the catalogue in unmatched. Never invent productIds. Include items from CLOSED categories too (the shop explains the cutoff).
-Replies (for "answer"): warm, short (1-4 lines), simple English (mirror Hinglish lightly if the customer uses it), 1-2 emojis max. Use ONLY the facts given (delivery info, catalogue, prices in EUR, current order). Payment is at pickup. If something is not in the catalogue, say so kindly and suggest a close item if there is one. If you don't know, say the shop owner will reply. End questions about products with how to order, e.g. "Just type *paneer 1* to add it 🙂". Never claim an order was placed or changed.`;
+Replies (for "answer"): warm, short (1-4 lines), simple English (mirror Hinglish lightly if the customer uses it), 1-2 emojis max. Use ONLY the facts given (delivery info, catalogue, prices in EUR, current order). Payment is at pickup. If something is not in the catalogue, say so kindly and suggest a close item if there is one. If you don't know, say the shop owner will reply. End questions about products with how to order, e.g. "Just type *paneer 1* to add it 🙂". Never claim an order was placed or changed.
+Respond with ONLY this JSON: {"intent": "order|answer|list|my_order|cancel|greeting", "lines": [{"productId": "...", "qty": 1, "raw": "..."}], "unmatched": ["..."], "reply": "..."}`;
 
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
@@ -68,6 +69,9 @@ const RESPONSE_SCHEMA = {
 };
 
 const INTENTS = new Set<Intent>(['order', 'answer', 'list', 'my_order', 'cancel', 'greeting']);
+
+/** Set after the model rejected the strict request once; later calls go straight to plain JSON mode. */
+let simple400 = false;
 
 export async function askAssistant(input: AssistantInput, opts: AssistantOpts): Promise<AssistantResult | null> {
   const started = Date.now();
@@ -94,26 +98,41 @@ export async function askAssistant(input: AssistantInput, opts: AssistantOpts): 
     ].join('\n');
 
     const model = encodeURIComponent(opts.model);
-    const res = await f(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: 'user', parts: [{ text: context }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: RESPONSE_SCHEMA,
-          temperature: 0.2,
-          maxOutputTokens: 800,
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 6000),
-    });
-    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+    const call = (simple: boolean) =>
+      f(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: 'user', parts: [{ text: context }] }],
+          // Some models reject a strict schema or thinkingConfig (HTTP 400): retry with plain JSON mode.
+          generationConfig: simple
+            ? { responseMimeType: 'application/json', temperature: 0.2 }
+            : {
+                responseMimeType: 'application/json',
+                responseSchema: RESPONSE_SCHEMA,
+                temperature: 0.2,
+                maxOutputTokens: 800,
+                thinkingConfig: { thinkingBudget: 0 },
+              },
+        }),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 6000),
+      });
+    let res = await call(simple400);
+    if (res.status === 400 && !simple400) {
+      const body = await res.text().catch(() => '');
+      opts.log.warn(`assistant: Gemini 400, retrying without schema: ${body.replace(/\s+/g, ' ').slice(0, 300)}`);
+      simple400 = true;
+      res = await call(true);
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Gemini HTTP ${res.status}: ${body.replace(/\s+/g, ' ').slice(0, 300)}`);
+    }
     const data = (await res.json()) as any;
     const out = data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text ?? '').join('') ?? '';
-    const parsed = JSON.parse(out) as { intent?: unknown; lines?: unknown; unmatched?: unknown; reply?: unknown };
+    const json = out.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+    const parsed = JSON.parse(json) as { intent?: unknown; lines?: unknown; unmatched?: unknown; reply?: unknown };
     const intent = String(parsed.intent ?? '') as Intent;
     if (!INTENTS.has(intent)) throw new Error(`bad intent ${JSON.stringify(parsed.intent)}`);
 
