@@ -18,6 +18,7 @@ export interface BotDeps {
   storeName: string;
   geminiApiKey: string | null;
   geminiModel: string;
+  geminiApi?: 'vertex' | 'studio';
   log: Logger;
   now?: () => number;
   /** Test hook: replaces parseOrder(). */
@@ -217,15 +218,14 @@ export class Bot {
   }
 
   /**
-   * Free text: a clean order the rules fully understand goes straight to confirmation (fast, no AI).
-   * Anything else (questions, Hinglish, typos, mixed messages) goes to the Gemini assistant.
+   * Free text (orders, questions, Hinglish, typos) goes to the Gemini assistant (~1.5 s on Vertex);
+   * the rule parser is the fallback when Gemini fails or times out.
    */
   private async understand(phone: string, text: string, now: number): Promise<void> {
     const { store } = this.d;
     if (!this.d.geminiApiKey || this.d.parse) return this.takeOrder(phone, text, now);
     const products = store.listProducts().filter((p) => p.active);
     const rules = parseOrderRules(text, products);
-    if (rules.lines.length && !rules.unmatched.length) return this.takeOrder(phone, text, now, rules);
 
     const run = store.activeRun(now);
     const order = run ? store.findOpenOrder(run.id, phone) : null;
@@ -244,7 +244,7 @@ export class Bot {
         history,
         message: text,
       },
-      { apiKey: this.d.geminiApiKey, model: this.d.geminiModel, log: this.d.log },
+      { apiKey: this.d.geminiApiKey, model: this.d.geminiModel, api: this.d.geminiApi ?? 'vertex', log: this.d.log },
     );
     if (!ai) return this.takeOrder(phone, text, now, rules);
     switch (ai.intent) {

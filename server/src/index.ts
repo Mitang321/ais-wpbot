@@ -31,6 +31,7 @@ const bot = new Bot({
   storeName: config.storeName,
   geminiApiKey: config.geminiApiKey,
   geminiModel: config.geminiModel,
+  geminiApi: config.geminiApi,
   log,
 });
 const { app, idle } = createApp({ config, store, bot, log });

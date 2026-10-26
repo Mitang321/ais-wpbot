@@ -32,6 +32,7 @@ export interface AssistantInput {
 export interface AssistantOpts {
   apiKey: string;
   model: string;
+  api?: 'vertex' | 'studio';
   log: Logger;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -47,7 +48,7 @@ Decide the intent of the customer's latest message:
 - "cancel": they want to cancel their whole order.
 - "greeting": just hello / hi / namaste with nothing else.
 Order lines: match each item to exactly one productId from the catalogue. qty is in the product unit: unit "kg" means kilograms (500 g -> 0.5); pack/pc/bunch means number of packs ("500g" of a "250 g box" -> 2; "1 bag 20kg" of a "20 kg bag" -> 1). Default qty 1 ("some", "a little" -> 1 for packs, 0.5 kg for kg items). Prefer the pack size matching a stated weight. Put requested items that are not in the catalogue in unmatched. Never invent productIds. Include items from CLOSED categories too (the shop explains the cutoff).
-Replies (for "answer"): warm, short (1-4 lines), simple English (mirror Hinglish lightly if the customer uses it), 1-2 emojis max. Use ONLY the facts given (delivery info, catalogue, prices in EUR, current order). Payment is at pickup. If something is not in the catalogue, say so kindly and suggest a close item if there is one. If you don't know, say the shop owner will reply. End questions about products with how to order, e.g. "Just type *paneer 1* to add it 🙂". Never claim an order was placed or changed.
+Replies (for "answer"): warm, short (1-4 lines), simple English (mirror Hinglish lightly if the customer uses it), 1-2 emojis max. Use ONLY the facts given (delivery info, catalogue, prices in EUR, current order). Payment is at pickup. If something is not in the catalogue, say so kindly and suggest a close item if there is one. If you don't know, say the shop owner will reply. End questions about products with how to order, e.g. "Just type *paneer 1* to add it 🙂" (use the product name, never the productId). Never say an order was placed or changed: for "order" intent the shop shows a summary with Confirm buttons, so leave reply empty.
 Respond with ONLY this JSON: {"intent": "order|answer|list|my_order|cancel|greeting", "lines": [{"productId": "...", "qty": 1, "raw": "..."}], "unmatched": ["..."], "reply": "..."}`;
 
 const RESPONSE_SCHEMA = {
@@ -99,7 +100,11 @@ export async function askAssistant(input: AssistantInput, opts: AssistantOpts): 
 
     const model = encodeURIComponent(opts.model);
     const call = (simple: boolean) =>
-      f(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      f(
+        opts.api === 'studio'
+          ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+          : `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`,
+        {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-goog-api-key': opts.apiKey },
         body: JSON.stringify({
@@ -113,9 +118,10 @@ export async function askAssistant(input: AssistantInput, opts: AssistantOpts): 
                 responseSchema: RESPONSE_SCHEMA,
                 temperature: 0.2,
                 maxOutputTokens: 800,
+                thinkingConfig: { thinkingLevel: 'minimal' },
               },
         }),
-        signal: AbortSignal.timeout(opts.timeoutMs ?? 8000),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 6000),
       });
     let res = await call(simple400);
     if (res.status === 400 && !simple400) {

@@ -13,6 +13,8 @@ export interface Config {
   storeName: string;
   geminiApiKey: string | null;
   geminiModel: string;
+  /** 'vertex' (Google Cloud key, default) or 'studio' (AI Studio key). */
+  geminiApi: 'vertex' | 'studio';
   seedDemo: boolean;
   graphBaseUrl: string;
 }
@@ -51,6 +53,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     storeName: get('STORE_NAME') || 'Indian Store Marseille',
     geminiApiKey: get('GEMINI_API_KEY') || null,
     geminiModel: get('GEMINI_MODEL') || 'gemini-3.1-flash-lite',
+    geminiApi: get('GEMINI_API') === 'studio' ? 'studio' : 'vertex',
     seedDemo: get('SEED_DEMO').toLowerCase() !== 'false',
     graphBaseUrl: 'https://graph.facebook.com/v23.0',
   };
