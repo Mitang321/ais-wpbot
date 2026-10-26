@@ -22,6 +22,27 @@ export class WhatsAppClient {
     return this.post({ to, type: 'template', template: { name, language: { code: language } } });
   }
 
+  /** Interactive reply-buttons message: at most 3 buttons, titles <= 20 chars, body <= 1024 chars. */
+  sendButtons(to: string, body: string, buttons: Array<{ id: string; title: string }>): Promise<SendResult> {
+    if (!buttons.length || buttons.length > 3) {
+      return Promise.resolve({ ok: false, status: 0, error: 'Reply buttons: 1 to 3 buttons allowed' });
+    }
+    const long = buttons.find((b) => b.title.length > 20 || !b.title || !b.id || b.id.length > 256);
+    if (long) return Promise.resolve({ ok: false, status: 0, error: `Reply buttons: invalid button "${long.title}"` });
+    if (!body || body.length > 1024) {
+      return Promise.resolve({ ok: false, status: 0, error: 'Reply buttons: body must be 1 to 1024 characters' });
+    }
+    return this.post({
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: body },
+        action: { buttons: buttons.map((b) => ({ type: 'reply', reply: { id: b.id, title: b.title } })) },
+      },
+    });
+  }
+
   private async post(payload: Record<string, unknown>): Promise<SendResult> {
     const f = this.opts.fetch ?? fetch;
     const url = `${this.opts.graphBaseUrl}/${encodeURIComponent(this.opts.phoneNumberId)}/messages`;

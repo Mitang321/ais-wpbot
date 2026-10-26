@@ -1,8 +1,7 @@
-/** Entry point: config -> SQLite -> catalog -> HTTP server. */
+/** Entry point: config -> SQLite (+ seed) -> HTTP server. */
 import { serve } from '@hono/node-server';
 import { loadConfig, type Config } from './config.js';
 import { openStore } from './db.js';
-import { CatalogClient } from './catalog.js';
 import { WhatsAppClient } from './whatsapp.js';
 import { Bot } from './bot.js';
 import { createApp } from './app.js';
@@ -17,19 +16,28 @@ try {
 }
 
 const store = openStore(config.dataDir);
-const catalog = new CatalogClient({ workerUrl: config.workerUrl, secret: config.botSharedSecret, log });
+if (store.seedIfEmpty({ seedDemo: config.seedDemo })) {
+  const n = store.storeCounts();
+  log.info(`seeded ${n.products} products, ${n.runs} runs, ${n.orders} orders`);
+}
 const wa = new WhatsAppClient({
   graphBaseUrl: config.graphBaseUrl,
   phoneNumberId: config.waPhoneNumberId,
   token: config.waToken,
 });
-const bot = new Bot({ store, wa, catalog, appBaseUrl: config.appBaseUrl, log });
-const { app, idle } = createApp({ config, store, catalog, bot, log });
+const bot = new Bot({
+  store,
+  wa,
+  storeName: config.storeName,
+  geminiApiKey: config.geminiApiKey,
+  geminiModel: config.geminiModel,
+  log,
+});
+const { app, idle } = createApp({ config, store, bot, log });
 
 const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
-  log.info(`wa-server listening on :${info.port} (data: ${config.dataDir})`);
+  log.info(`wa-server listening on :${info.port} (data: ${config.dataDir}, parser: ${config.geminiApiKey ? config.geminiModel : 'rules'})`);
 });
-catalog.start();
 
 let shuttingDown = false;
 async function shutdown(signal: string) {
@@ -38,7 +46,6 @@ async function shutdown(signal: string) {
   log.info(`${signal}: shutting down`);
   const force = setTimeout(() => process.exit(1), 8000);
   force.unref();
-  catalog.stop();
   server.close();
   try {
     await idle();

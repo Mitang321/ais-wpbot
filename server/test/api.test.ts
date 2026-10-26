@@ -163,15 +163,16 @@ test('send-template works without a window and defaults language to en_US', asyn
   assert.equal(store.getConversation(PHONE)!.windowOpen, false);
 });
 
-test('settings: defaults, partial update, validation', async () => {
-  const { app } = setup();
+test('settings: defaults (autoReply on), partial update, validation', async () => {
+  const { app } = setup({ bot: true });
   const h = await login(app);
   assert.deepEqual(await (await app.request('/api/settings', { headers: h })).json(), {
     ok: true,
-    settings: { autoReply: false, allowedPhones: [] },
+    settings: { autoReply: true, allowedPhones: [] },
   });
-  let r = await app.request('/api/settings', { method: 'PUT', headers: h, body: JSON.stringify({ autoReply: true }) });
-  assert.deepEqual(await r.json(), { ok: true, settings: { autoReply: true, allowedPhones: [] } });
+  let r = await app.request('/api/settings', { method: 'PUT', headers: h, body: JSON.stringify({ autoReply: false }) });
+  assert.deepEqual(await r.json(), { ok: true, settings: { autoReply: false, allowedPhones: [] } });
+  r = await app.request('/api/settings', { method: 'PUT', headers: h, body: JSON.stringify({ autoReply: true }) });
   r = await app.request('/api/settings', { method: 'PUT', headers: h, body: JSON.stringify({ allowedPhones: ['+91 98123 45678', PHONE] }) });
   assert.deepEqual(await r.json(), { ok: true, settings: { autoReply: true, allowedPhones: [PHONE] } });
   r = await app.request('/api/settings', { method: 'PUT', headers: h, body: JSON.stringify({ autoReply: 'yes' }) });
