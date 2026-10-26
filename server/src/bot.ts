@@ -112,7 +112,16 @@ export class Bot {
   }
 
   private async handleValue(value: any): Promise<void> {
-    const { store } = this.d;
+    const { store, wa } = this.d;
+
+    // Reply from the number the customer actually wrote to; a mismatch causes Meta error 131047.
+    const toId = typeof value.metadata?.phone_number_id === 'string' ? value.metadata.phone_number_id : '';
+    if (toId && Array.isArray(value.messages) && toId !== wa.replyFromId) {
+      if (toId !== wa.phoneNumberId) {
+        this.d.log.warn(`webhook: message sent to phone_number_id ${toId}, WA_PHONE_NUMBER_ID is ${wa.phoneNumberId}; replying from ${toId}`);
+      }
+      wa.replyFromId = toId;
+    }
 
     if (Array.isArray(value.contacts)) {
       for (const c of value.contacts) {

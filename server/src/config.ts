@@ -50,7 +50,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .filter(Boolean),
     storeName: get('STORE_NAME') || 'Indian Store Marseille',
     geminiApiKey: get('GEMINI_API_KEY') || null,
-    geminiModel: get('GEMINI_MODEL') || 'gemini-2.5-flash-lite',
+    geminiModel: get('GEMINI_MODEL') || 'gemini-flash-lite-latest',
     seedDemo: get('SEED_DEMO').toLowerCase() !== 'false',
     graphBaseUrl: 'https://graph.facebook.com/v23.0',
   };

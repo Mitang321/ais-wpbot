@@ -26,7 +26,7 @@ The API is specified in [../CONTRACT.md](../CONTRACT.md) and [../GROCERY-CONTRAC
 | `DASHBOARD_ORIGIN` | | | CORS origin(s), comma-separated, e.g. `https://wa-dashboard.vercel.app`. |
 | `STORE_NAME` | | `Indian Store Marseille` | Shown in bot greetings. |
 | `GEMINI_API_KEY` | | | Enables Gemini order parsing. Without it, only the rules parser runs. Never logged. |
-| `GEMINI_MODEL` | | `gemini-2.5-flash-lite` | |
+| `GEMINI_MODEL` | | `gemini-flash-lite-latest` | |
 | `SEED_DEMO` | | `true` | On first boot (no products) the seed catalogue is always inserted; `false` skips the demo run and orders. |
 | `PORT` | | `3000` | |
 | `DATA_DIR` | | `./data` (`/data` in Docker) | |

@@ -12,7 +12,14 @@ export interface WhatsAppOpts {
 }
 
 export class WhatsAppClient {
+  /** Phone Number ID that last received a customer message; replies go out from it (set by the bot). */
+  replyFromId: string | null = null;
+
   constructor(private opts: WhatsAppOpts) {}
+
+  get phoneNumberId(): string {
+    return this.opts.phoneNumberId;
+  }
 
   sendText(to: string, text: string): Promise<SendResult> {
     return this.post({ to, type: 'text', text: { body: text, preview_url: true } });
@@ -45,7 +52,7 @@ export class WhatsAppClient {
 
   private async post(payload: Record<string, unknown>): Promise<SendResult> {
     const f = this.opts.fetch ?? fetch;
-    const url = `${this.opts.graphBaseUrl}/${encodeURIComponent(this.opts.phoneNumberId)}/messages`;
+    const url = `${this.opts.graphBaseUrl}/${encodeURIComponent(this.replyFromId ?? this.opts.phoneNumberId)}/messages`;
     let res: Response;
     try {
       res = await f(url, {
